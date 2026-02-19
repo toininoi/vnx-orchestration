@@ -568,7 +568,7 @@ TSJSON
     # popup command as a per-session option (@vnx_popup_cmd) and bind a single
     # global key that reads the CURRENT session's option at invocation time.
     local popup_env="unset PROJECT_ROOT VNX_HOME VNX_DATA_DIR VNX_STATE_DIR VNX_DISPATCH_DIR VNX_LOGS_DIR VNX_SKILLS_DIR VNX_PIDS_DIR VNX_LOCKS_DIR VNX_REPORTS_DIR VNX_DB_DIR; export PROJECT_ROOT='$PROJECT_ROOT' VNX_HOME='$VNX_HOME' VNX_DATA_DIR='$VNX_DATA_DIR'"
-    local popup_full_cmd="$popup_env bash '$popup_script'"
+    local popup_full_cmd="$popup_env; bash '$popup_script'"
 
     # Store per-session so Ctrl+G resolves the correct project at runtime.
     tmux set-option -t "$session_name" @vnx_popup_cmd "$popup_full_cmd" 2>/dev/null
