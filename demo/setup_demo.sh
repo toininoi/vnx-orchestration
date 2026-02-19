@@ -826,6 +826,17 @@ cd "$PROJECT_DIR"
 bash .claude/vnx-system/bin/vnx init
 echo "  VNX initialized (terminals, skills, hooks, database)"
 
+# Verify T0 orchestration assets were unpacked from current shipped templates/skills.
+if ! grep -q "T0 orchestration uses \`CLAUDE.md\` only." "$PROJECT_DIR/.claude/terminals/T0/CLAUDE.md"; then
+  echo "  ERROR: T0 CLAUDE.md is not the expected current template."
+  exit 1
+fi
+if ! grep -q "T0 orchestration itself uses \`CLAUDE.md\` only." "$PROJECT_DIR/.claude/skills/t0-orchestrator/SKILL.md"; then
+  echo "  ERROR: t0-orchestrator SKILL.md is not the expected current skill."
+  exit 1
+fi
+echo "  Verified: T0 CLAUDE.md + t0-orchestrator skill are current"
+
 # Configure T1 = Codex CLI (multi-model demo)
 mkdir -p "$PROJECT_DIR/.vnx-data"
 echo 'VNX_T1_PROVIDER=codex_cli' > "$PROJECT_DIR/.vnx-data/config.env"
