@@ -136,10 +136,9 @@ echo "  Seeded: API, services, models, tests"
 cat > "$PROJECT_DIR/src/services/lead_scoring_engine.py" << 'PYEOF'
 """Lead Scoring Engine - Core scoring implementation.
 
-⚠️  DEMO TRAP FILE: This file intentionally exceeds 500 lines to validate
-the quality advisory pipeline. When an agent commits changes touching this
-file, quality_advisory.py emits file_size_warning and T0 sees
-approve_with_followup. See demo/setup_demo.sh for context.
+Handles behavioral, firmographic, demographic and engagement scoring
+dimensions with configurable weights, 0-100 normalization, and full
+audit trail for compliance and debugging.
 """
 from __future__ import annotations
 
