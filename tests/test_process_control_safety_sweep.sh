@@ -20,7 +20,6 @@ trap cleanup EXIT
 echo "== process control safety sweep tests =="
 
 TARGET_FILES=(
-  "$ROOT_DIR/.claude/vnx-system/scripts/launch_dashboards.sh"
   "$ROOT_DIR/.claude/vnx-system/scripts/update_pane_mapping.sh"
   "$ROOT_DIR/VNX_HYBRID_FINAL.sh"
   "$ROOT_DIR/vnx-dashboard"

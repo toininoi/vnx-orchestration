@@ -574,13 +574,30 @@ TSJSON
     # Store per-session so Ctrl+G resolves the correct project at runtime.
     tmux set-option -t "$session_name" @vnx_popup_cmd "$popup_full_cmd" 2>/dev/null
 
-    # Global binding: read @vnx_popup_cmd from whichever session is active.
-    # Uses run-shell to evaluate the session option dynamically.
-    tmux bind-key -n C-g run-shell 'tmux display-popup -E -w 80% -h 60% "$(tmux show-option -v @vnx_popup_cmd 2>/dev/null || echo echo\ No\ VNX\ session)"' 2>/dev/null
-    tmux bind-key -n 'C-\' run-shell 'tmux display-popup -E -w 80% -h 60% "$(tmux show-option -v @vnx_popup_cmd 2>/dev/null || echo echo\ No\ VNX\ session)"' 2>/dev/null
-    tmux bind-key q run-shell 'tmux display-popup -E -w 80% -h 60% "$(tmux show-option -v @vnx_popup_cmd 2>/dev/null || echo echo\ No\ VNX\ session)"' 2>/dev/null
-    tmux bind-key p run-shell 'tmux display-popup -E -w 80% -h 60% "$(tmux show-option -v @vnx_popup_cmd 2>/dev/null || echo echo\ No\ VNX\ session)"' 2>/dev/null
-    log "Popup queue bound to Ctrl+G, Ctrl+\\, Ctrl+B Q/P (session-aware)"
+    # Create resolver script that reads @vnx_popup_cmd from the CURRENT session.
+    # This avoids run-shell + nested display-popup which fails with exit code 1.
+    local resolver="/tmp/vnx_popup_resolver.sh"
+    if [ ! -f "$resolver" ]; then
+      cat > "$resolver" <<'RESOLVER'
+#!/usr/bin/env bash
+cmd=$(tmux show-option -v @vnx_popup_cmd 2>/dev/null)
+if [ -n "$cmd" ]; then
+    eval "$cmd"
+else
+    echo "No VNX popup configured for this session."
+    echo "Start VNX first: vnx start"
+    sleep 2
+fi
+RESOLVER
+      chmod +x "$resolver"
+    fi
+
+    # Global binding: display-popup calls resolver, which reads per-session option.
+    tmux bind-key -n C-g display-popup -E -w 80% -h 60% "bash $resolver" 2>/dev/null
+    tmux bind-key -n 'C-\' display-popup -E -w 80% -h 60% "bash $resolver" 2>/dev/null
+    tmux bind-key q display-popup -E -w 80% -h 60% "bash $resolver" 2>/dev/null
+    tmux bind-key p display-popup -E -w 80% -h 60% "bash $resolver" 2>/dev/null
+    log "Popup queue bound to Ctrl+G, Ctrl+\\, Ctrl+B Q/P (resolver-based)"
   fi
 
   # ── Clean tmux environment (prevent cross-project contamination) ──────

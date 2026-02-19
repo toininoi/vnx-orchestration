@@ -516,6 +516,17 @@ process_single_block() {
 
 # Function to process captured content
 process_capture() {
+    # ── Hard queue gate ───────────────────────────────────────────────────
+    # Only process new Manager Blocks if queue AND active are empty.
+    # This prevents T0 from flooding the queue with multiple dispatches.
+    # T0 should only dispatch ONE PR at a time; this enforces it at the
+    # infrastructure level regardless of what T0 outputs.
+    local queue_count=$(ls "$DISPATCH_DIR/queue/" 2>/dev/null | wc -l | tr -d ' ')
+    local active_count=$(ls "$DISPATCH_DIR/active/" 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$queue_count" -gt 0 ] || [ "$active_count" -gt 0 ]; then
+        return
+    fi
+
     # Capture larger buffer to ensure complete blocks with [[DONE]] markers
     # Hash-based deduplication prevents reprocessing old blocks safely
     # Using -S -300 to capture sufficient lines for fast development and large manager blocks
