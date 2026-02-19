@@ -564,19 +564,23 @@ TSJSON
     popup_script="$scripts_dir/queue_ui_enhanced.sh"
   fi
   if [ -n "$popup_script" ]; then
-    # CRITICAL: unset VNX env vars to prevent cross-project contamination.
-    # Without this, a popup in project B inherits VNX_DATA_DIR from project A
-    # via the shared tmux server environment.
+    # CRITICAL: tmux keybindings are server-wide — the last `vnx start` wins.
+    # To support multiple VNX projects on the same tmux server, we store the
+    # popup command as a per-session option (@vnx_popup_cmd) and bind a single
+    # global key that reads the CURRENT session's option at invocation time.
     local popup_env="unset PROJECT_ROOT VNX_HOME VNX_DATA_DIR VNX_STATE_DIR VNX_DISPATCH_DIR VNX_LOGS_DIR VNX_SKILLS_DIR VNX_PIDS_DIR VNX_LOCKS_DIR VNX_REPORTS_DIR VNX_DB_DIR; export PROJECT_ROOT='$PROJECT_ROOT' VNX_HOME='$VNX_HOME' VNX_DATA_DIR='$VNX_DATA_DIR'"
-    tmux bind-key -n C-g display-popup -t "$session_name" -E -w 80% -h 60% \
-      "$popup_env bash '$popup_script'" 2>/dev/null
-    tmux bind-key -n 'C-\' display-popup -t "$session_name" -E -w 80% -h 60% \
-      "$popup_env bash '$popup_script'" 2>/dev/null
-    tmux bind-key q display-popup -t "$session_name" -E -w 80% -h 60% \
-      "$popup_env bash '$popup_script'" 2>/dev/null
-    tmux bind-key p display-popup -t "$session_name" -E -w 80% -h 60% \
-      "$popup_env bash '$popup_script'" 2>/dev/null
-    log "Popup queue bound to Ctrl+G, Ctrl+\\, Ctrl+B Q/P"
+    local popup_full_cmd="$popup_env bash '$popup_script'"
+
+    # Store per-session so Ctrl+G resolves the correct project at runtime.
+    tmux set-option -t "$session_name" @vnx_popup_cmd "$popup_full_cmd" 2>/dev/null
+
+    # Global binding: read @vnx_popup_cmd from whichever session is active.
+    # Uses run-shell to evaluate the session option dynamically.
+    tmux bind-key -n C-g run-shell 'tmux display-popup -E -w 80% -h 60% "$(tmux show-option -v @vnx_popup_cmd 2>/dev/null || echo echo\ No\ VNX\ session)"' 2>/dev/null
+    tmux bind-key -n 'C-\' run-shell 'tmux display-popup -E -w 80% -h 60% "$(tmux show-option -v @vnx_popup_cmd 2>/dev/null || echo echo\ No\ VNX\ session)"' 2>/dev/null
+    tmux bind-key q run-shell 'tmux display-popup -E -w 80% -h 60% "$(tmux show-option -v @vnx_popup_cmd 2>/dev/null || echo echo\ No\ VNX\ session)"' 2>/dev/null
+    tmux bind-key p run-shell 'tmux display-popup -E -w 80% -h 60% "$(tmux show-option -v @vnx_popup_cmd 2>/dev/null || echo echo\ No\ VNX\ session)"' 2>/dev/null
+    log "Popup queue bound to Ctrl+G, Ctrl+\\, Ctrl+B Q/P (session-aware)"
   fi
 
   # ── Clean tmux environment (prevent cross-project contamination) ──────
