@@ -573,29 +573,34 @@ TSJSON
     # Store per-session so Ctrl+G resolves the correct project at runtime.
     tmux set-option -t "$session_name" @vnx_popup_cmd "$popup_full_cmd" 2>/dev/null
 
-    # Create resolver script that reads @vnx_popup_cmd from the CURRENT session.
-    # This avoids run-shell + nested display-popup which fails with exit code 1.
+    # Create resolver script that reads @vnx_popup_cmd from the originating session.
+    # #{session_name} is resolved by tmux BEFORE the popup opens, so the resolver
+    # always gets the correct session even though display-popup runs in client context.
     local resolver="/tmp/vnx_popup_resolver.sh"
-    if [ ! -f "$resolver" ]; then
-      cat > "$resolver" <<'RESOLVER'
+    cat > "$resolver" <<'RESOLVER'
 #!/usr/bin/env bash
-cmd=$(tmux show-option -v @vnx_popup_cmd 2>/dev/null)
+session="${1:-}"
+if [ -z "$session" ]; then
+    echo "No session name provided."
+    sleep 2
+    exit 1
+fi
+cmd=$(tmux show-option -t "$session" -v @vnx_popup_cmd 2>/dev/null)
 if [ -n "$cmd" ]; then
     eval "$cmd"
 else
-    echo "No VNX popup configured for this session."
+    echo "No VNX popup configured for session: $session"
     echo "Start VNX first: vnx start"
     sleep 2
 fi
 RESOLVER
-      chmod +x "$resolver"
-    fi
+    chmod +x "$resolver"
 
-    # Global binding: display-popup calls resolver, which reads per-session option.
-    tmux bind-key -n C-g display-popup -E -w 80% -h 60% "bash $resolver" 2>/dev/null
-    tmux bind-key -n 'C-\' display-popup -E -w 80% -h 60% "bash $resolver" 2>/dev/null
-    tmux bind-key q display-popup -E -w 80% -h 60% "bash $resolver" 2>/dev/null
-    tmux bind-key p display-popup -E -w 80% -h 60% "bash $resolver" 2>/dev/null
+    # Global binding: #{session_name} is expanded at key-press time by tmux.
+    tmux bind-key -n C-g display-popup -E -w 80% -h 60% "bash $resolver '#{session_name}'" 2>/dev/null
+    tmux bind-key -n 'C-\' display-popup -E -w 80% -h 60% "bash $resolver '#{session_name}'" 2>/dev/null
+    tmux bind-key q display-popup -E -w 80% -h 60% "bash $resolver '#{session_name}'" 2>/dev/null
+    tmux bind-key p display-popup -E -w 80% -h 60% "bash $resolver '#{session_name}'" 2>/dev/null
     log "Popup queue bound to Ctrl+G, Ctrl+\\, Ctrl+B Q/P (resolver-based)"
   fi
 
