@@ -34,11 +34,27 @@ discover_pane_by_title() {
     local terminal="$1"
     local pane_id
 
-    # Look for panes with matching title
-    pane_id=$(tmux list-panes -a -F "#{pane_id} #{pane_title}" 2>/dev/null | \
-        grep -E "(T${terminal#T}|${terminal})" | \
-        awk '{print $1}' | \
-        head -1)
+    # Scope to own session when PROJECT_ROOT is set (prevents cross-project matches)
+    local vnx_session=""
+    if [ -n "${PROJECT_ROOT:-}" ]; then
+        vnx_session="vnx-$(basename "$PROJECT_ROOT")"
+    fi
+
+    # Look for panes with matching title (session-scoped when possible)
+    if [ -n "$vnx_session" ] && tmux has-session -t "$vnx_session" 2>/dev/null; then
+        pane_id=$(tmux list-panes -s -t "$vnx_session" -F "#{pane_id} #{pane_title}" 2>/dev/null | \
+            grep -E "(T${terminal#T}|${terminal})" | \
+            awk '{print $1}' | \
+            head -1)
+    fi
+
+    # Fallback: search all sessions
+    if [ -z "$pane_id" ]; then
+        pane_id=$(tmux list-panes -a -F "#{pane_id} #{pane_title}" 2>/dev/null | \
+            grep -E "(T${terminal#T}|${terminal})" | \
+            awk '{print $1}' | \
+            head -1)
+    fi
 
     if [ -n "$pane_id" ]; then
         _pm_log "Found $terminal by title: $pane_id"
@@ -97,8 +113,15 @@ discover_pane_by_window() {
         *) return 1 ;;
     esac
 
-    # Try to find by window:pane notation
-    local pane_id=$(tmux list-panes -t "vnx:$window_index.0" -F "#{pane_id}" 2>/dev/null | head -1)
+    # Derive session name from PROJECT_ROOT (matches bin/vnx: "vnx-$(basename $PROJECT_ROOT)")
+    # This prevents cross-project pane discovery when multiple VNX sessions exist.
+    local vnx_session="vnx"
+    if [ -n "${PROJECT_ROOT:-}" ]; then
+        vnx_session="vnx-$(basename "$PROJECT_ROOT")"
+    fi
+
+    # Try to find by window:pane notation (session-scoped)
+    local pane_id=$(tmux list-panes -t "$vnx_session:$window_index.0" -F "#{pane_id}" 2>/dev/null | head -1)
 
     if [ -n "$pane_id" ]; then
         _pm_log "Found $terminal by window position: $pane_id"
