@@ -1,0 +1,38 @@
+graph TD
+    subgraph "Control Plane (The Brain)"
+        T0[T0 Orchestrator - Opus]
+        INTEL[Intelligence Aggregator]
+    end
+
+    subgraph "Governance Layer (The Gates)"
+        STAGE[Staging Area: dispatches/staging/]
+        PROMOTE{Human Review & Promote}
+        QUEUE[Active Queue: dispatches/queue/]
+    end
+
+    subgraph "Execution Layer (The Workers)"
+        T1[Worker T1 - Sonnet]
+        T2[Worker T2 - Sonnet]
+        T3[Worker T3 - Opus/Kimi]
+    end
+
+    subgraph "Audit Layer (The Ledger)"
+        BUS[(state/t0_receipts.ndjson)]
+        PROV[SLSA Provenance: Git Refs & Transcripts]
+    end
+
+    %% Flow
+    T0 -->|1. Draft Plan| STAGE
+    STAGE --> PROMOTE
+    PROMOTE -->|2. Approved| QUEUE
+    QUEUE -->|3. Claim Task| T1 & T2 & T3
+    
+    T1 & T2 & T3 -->|4. Generate Report| BUS
+    BUS --> PROV
+    BUS -->|5. Compress & Digest| INTEL
+    INTEL -->|6. Updated Context| T0
+
+    %% Styling
+    style BUS fill:#f96,stroke:#333,stroke-width:2px
+    style PROMOTE fill:#bbf,stroke:#333,stroke-width:2px
+    style T0 font-weight:bold
