@@ -1,0 +1,19 @@
+# Allowed legacy state writes (basename/glob patterns).
+# Used only in rollback mode or when explicitly provided via CLI/env.
+active_conflicts.json
+dashboard_status.json
+dispatch_audit.jsonl
+intelligence_health.json
+intelligence_usage.ndjson
+learning_report_*.json
+open_items.md
+open_items.json
+open_items_digest.json
+open_items_audit.jsonl
+pr_queue.json
+pr_queue.json.sha256
+pr_queue_state.yaml
+quality_intelligence.db
+queue_event_log.jsonl
+staging_seen.json
+t0_recommendations.json

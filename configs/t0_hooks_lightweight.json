@@ -1,0 +1,30 @@
+{
+  "description": "Lightweight prompt-based hooks for T0 intelligence enforcement",
+  "version": "2.0",
+  "token_overhead": "~200 tokens per dispatch",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "📋 T0 Intelligence Requirements:\n\nBefore creating any dispatch, you MUST:\n1. Read t0_brief.json for current system state\n2. Read progress_state.yaml for track status\n3. Verify no conflicts or blockers\n\nThese files provide the intelligence context for optimal dispatch routing."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Tool: Write\nFile: $TOOL_INPUT.file_path\n\nIf creating a dispatch file (path contains 'dispatch' or 'queue'):\n\n✅ Check conversation history:\n- Did you read t0_brief.json this turn?\n- Did you read progress_state.yaml this turn?\n\nIf YES to both: Return 'approve'\nIf NO: Return 'deny' with message: 'Read intelligence files first: t0_brief.json and progress_state.yaml'\n\nIf NOT a dispatch file: Return 'approve'",
+            "timeoutMs": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

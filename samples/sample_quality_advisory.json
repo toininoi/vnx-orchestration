@@ -1,0 +1,69 @@
+{
+  "version": "1.0",
+  "generated_at": "2025-11-14T09:48:35Z",
+  "dispatch_id": "20251114-091500-api-refactor",
+  "terminal": "T2",
+  "track": "B",
+  "gate": "testing",
+
+  "decision": "approve_with_followup",
+  "risk_score": 55,
+
+  "checks": {
+    "file_size": {
+      "status": "pass",
+      "details": [
+        {"file": "tests/test_response_validator.py", "lines": 187, "threshold_warn": 500, "threshold_block": 800}
+      ]
+    },
+    "function_size": {
+      "status": "warn",
+      "details": [
+        {"file": "tests/test_response_validator.py", "function": "test_batch_validation", "lines": 45, "threshold_warn": 40, "threshold_block": 70}
+      ]
+    },
+    "linting": {
+      "status": "pass",
+      "tool": "ruff",
+      "violations": 0
+    },
+    "dead_code": {
+      "status": "pass",
+      "tool": "vulture",
+      "unused_imports": 0,
+      "unused_variables": 0
+    },
+    "secrets": {
+      "status": "pass",
+      "tool": "gitleaks",
+      "detections": 0
+    },
+    "test_hygiene": {
+      "status": "warn",
+      "details": "Coverage 78% below 85% target for new module response_validator.py"
+    }
+  },
+
+  "summary": {
+    "warnings": 2,
+    "blocking": 0,
+    "risk_breakdown": {
+      "function_size_warn": 10,
+      "test_coverage_gap": 45
+    }
+  },
+
+  "suggested_followup": {
+    "type": "refactor_dispatch",
+    "instruction": "Add edge case tests for malformed JSON and increase coverage to 85%+",
+    "priority": "P2",
+    "target_terminal": "T2"
+  },
+
+  "terminal_snapshot": {
+    "T0": {"status": "idle", "provider": "claude", "model": "opus-4"},
+    "T1": {"status": "idle", "provider": "claude", "model": "sonnet-4"},
+    "T2": {"status": "completing", "provider": "codex", "model": "codex-cli"},
+    "T3": {"status": "idle", "provider": "gemini", "model": "gemini-2.5-pro"}
+  }
+}

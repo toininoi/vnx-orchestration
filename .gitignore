@@ -1,0 +1,84 @@
+# VNX runtime artifacts (local only)
+.vnx-data/
+state/
+state_archive_*/
+state_archive/
+t0_receipts.ndjson
+logs/
+pids/
+locks/
+dispatches/
+unified_reports/
+receipts/
+queue/
+reports/
+orchestration/
+
+# Database runtime files (generated locally by init scripts)
+database/*.db
+ledger/storage/*.db
+
+# Archive and backup directories (not part of current system)
+archive/
+backup_*/
+docs/archive/
+
+# Internal docs (not for public repo — all internal docs go in docs/internal/)
+docs/internal/
+docs/orchestration/evidence/
+docs/orchestration/archive/
+docs/orchestration/AS-*
+docs/orchestration/AI_*
+docs/roadmap/
+docs/architecture/
+
+# Old versioned scripts (superseded)
+scripts/claude_auth_check.sh
+scripts/userpromptsubmit_intelligence_inject.sh
+
+# Scripts runtime state
+scripts/state/
+scripts/.pr_state.json
+scripts/PR_QUEUE.md
+
+# Temp/one-off scripts
+fix_git_history.sh
+
+# Root-level runtime files
+index.html
+
+# Runtime PID files
+*.pid
+
+# Local runtime logs
+scripts/*.log
+scripts/smart_tap.log
+
+# Python runtime artifacts
+__pycache__/
+*.pyc
+
+# PR queue runtime artifacts (do not commit)
+/.pr_state.json
+/PR_QUEUE.md
+
+# Old config directory (merged into configs/)
+config/
+
+# Old testing directory (merged into tests/)
+testing/
+
+# Environment files
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Test result artifacts
+tests/*.log
+tests/*_RESULTS.md
+tests/*_ISSUE.md
+
+# Project-specific integration tests (not part of generic VNX)
+tests/test_carina_*.py

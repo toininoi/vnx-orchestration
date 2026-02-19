@@ -1,0 +1,4 @@
+[allowlist]
+description = "Allow documented Bundler enterprise example in README"
+paths = ['README\\.md$']
+regexes = ['BUNDLE_ENTERPRISE__CONTRIBSYS__COM=.*']

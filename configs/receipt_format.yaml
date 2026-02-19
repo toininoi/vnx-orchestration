@@ -1,0 +1,33 @@
+# Receipt Format Configuration
+# Controls when to use lean vs verbose receipts
+
+format_rules:
+  default: lean
+
+  # Use verbose format for these events
+  verbose_triggers:
+    - event_type: task_failed
+    - event_type: blocked
+    - status: error
+    - status: critical
+    - first_receipt_after_idle: true  # First receipt after 30min idle
+
+  # Always lean for these
+  lean_only:
+    - event_type: task_started
+    - event_type: task_acknowledged
+    - event_type: heartbeat
+    - status: working
+    - status: confirmed
+
+# Token optimization settings
+token_optimization:
+  max_receipt_tokens: 50        # Target for lean receipts
+  max_verbose_tokens: 200        # Maximum even for verbose
+  include_footer_threshold: 0.3  # Only include footer if state change > 30%
+
+# Intelligence hook takes care of state updates
+state_references:
+  - "See t0_brief.json for full context"
+  - "Intelligence hook provides real-time updates"
+  - "Check digests for historical patterns"

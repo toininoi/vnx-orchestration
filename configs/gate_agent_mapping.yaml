@@ -1,0 +1,84 @@
+# Gate-to-Agent Mapping
+# Deterministic mapping of gates to agent templates
+
+gates:
+  planning:
+    primary_agent: analyst
+    template: templates/agents/analyst.md
+    snippets: []
+    description: "Breaks down requirements into actionable tasks"
+    when_to_use: "Creating implementation plans, analyzing requirements"
+    
+  implementation:
+    primary_agent: developer
+    template: templates/agents/developer.md
+    snippets: [testing.md]
+    description: "Writes code, creates features, implements functionality"
+    when_to_use: "Building new features, writing code, creating tests"
+    
+  review:
+    primary_agent: senior-developer
+    template: templates/agents/senior-developer.md
+    snippets: [solid.md]
+    description: "Reviews code for quality, SOLID principles, best practices"
+    when_to_use: "Code review, architecture validation"
+    cognition: deep  # Requires Opus subagent
+    
+  testing:
+    primary_agent: quality-engineer
+    template: templates/agents/quality-engineer.md
+    snippets: [testing.md]
+    description: "Runs tests, validates functionality, checks coverage"
+    when_to_use: "Test execution, quality validation"
+    
+  validation:
+    primary_agent: architect-opus
+    template: templates/agents/architect-opus.md
+    snippets: []
+    description: "Final production readiness assessment"
+    when_to_use: "Gate approval, production validation"
+    cognition: deep  # Requires Opus subagent
+
+# Special cases (non-gate work)
+special_cases:
+  security_audit:
+    agent: security-engineer
+    template: templates/agents/security-engineer.md
+    snippets: [security.md]
+    
+  performance_optimization:
+    agent: performance
+    template: templates/agents/performance.md
+    snippets: [performance.md]
+    
+  refactoring:
+    agent: refactoring-expert
+    template: templates/agents/refactoring-expert.md
+    snippets: [refactoring.md, solid.md]
+    
+  documentation:
+    agent: developer
+    template: templates/agents/developer.md
+    snippets: []
+
+  debugging:
+    agent: debugging-specialist
+    template: templates/agents/debugging_specialist.md
+    snippets: []
+    description: "Forensic-level investigation for persistent, complex problems"
+    when_to_use: "Multi-day debugging, system failures, root cause analysis"
+    cognition: deep  # Always requires ultra-deep analysis
+
+# Track-specific preferences
+track_preferences:
+  A:  # Crawler
+    preferred_snippets: [performance.md]
+    focus: "Dutch market features, anti-bot measures"
+    
+  B:  # Storage
+    preferred_snippets: [solid.md]
+    focus: "JSONB transformation, RAG pipeline"
+    
+  C:  # Infrastructure
+    preferred_snippets: [security.md]
+    focus: "Configuration, monitoring, compliance"

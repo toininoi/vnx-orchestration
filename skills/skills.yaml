@@ -1,0 +1,214 @@
+# VNX Skills Registry (Shipped)
+#
+# Complete skill registry shipped with VNX packaging.
+# T0 uses this registry for skill validation and dispatch routing.
+# Projects can extend with project-specific skills in their own skills.yaml.
+
+version: 2.0.0
+updated: 2026-02-16
+
+# ─── Valid Skills (18 core) ─────────────────────────────────────────
+# Projects may add project-specific skills to this list.
+
+valid_skills:
+  - planner
+  - architect
+  - backend-developer
+  - api-developer
+  - frontend-developer
+  - test-engineer
+  - quality-engineer
+  - reviewer
+  - debugger
+  - security-engineer
+  - performance-profiler
+  - python-optimizer
+  - supabase-expert
+  - data-analyst
+  - excel-reporter
+  - monitoring-specialist
+  - vnx-manager
+  - t0-orchestrator
+
+# ─── Skill Definitions ─────────────────────────────────────────────
+
+skills:
+  # --- Core VNX Skills ---
+
+  planner:
+    name: "@planner"
+    file: "planner/SKILL.md"
+    type: planning
+
+  architect:
+    name: "@architect"
+    file: "architect/SKILL.md"
+    type: design
+
+  backend-developer:
+    name: "@backend-developer"
+    file: "backend-developer/SKILL.md"
+    type: implementation
+    domain: backend
+
+  api-developer:
+    name: "@api-developer"
+    file: "api-developer/SKILL.md"
+    type: implementation
+    domain: api
+
+  frontend-developer:
+    name: "@frontend-developer"
+    file: "frontend-developer/SKILL.md"
+    type: implementation
+    domain: frontend
+
+  test-engineer:
+    name: "@test-engineer"
+    file: "test-engineer/SKILL.md"
+    type: validation
+
+  quality-engineer:
+    name: "@quality-engineer"
+    file: "quality-engineer/SKILL.md"
+    type: validation
+
+  reviewer:
+    name: "@reviewer"
+    file: "reviewer/SKILL.md"
+    type: review
+
+  debugger:
+    name: "@debugger"
+    file: "debugger/SKILL.md"
+    type: debugging
+
+  security-engineer:
+    name: "@security-engineer"
+    file: "security-engineer/SKILL.md"
+    type: security
+
+  performance-profiler:
+    name: "@performance-profiler"
+    file: "performance-profiler/SKILL.md"
+    type: optimization
+
+  python-optimizer:
+    name: "@python-optimizer"
+    file: "python-optimizer/SKILL.md"
+    type: optimization
+
+  supabase-expert:
+    name: "@supabase-expert"
+    file: "supabase-expert/SKILL.md"
+    type: database
+
+  data-analyst:
+    name: "@data-analyst"
+    file: "data-analyst/SKILL.md"
+    type: analysis
+
+  excel-reporter:
+    name: "@excel-reporter"
+    file: "excel-reporter/SKILL.md"
+    type: reporting
+
+  monitoring-specialist:
+    name: "@monitoring-specialist"
+    file: "monitoring-specialist/SKILL.md"
+    type: infrastructure
+
+  vnx-manager:
+    name: "@vnx-manager"
+    file: "vnx-manager/SKILL.md"
+    type: infrastructure
+    terminal: T-MANAGER
+
+  t0-orchestrator:
+    name: "@t0-orchestrator"
+    file: "t0-orchestrator/SKILL.md"
+    type: orchestration
+    terminal: T0
+
+# ─── Common Mistakes ───────────────────────────────────────────────
+
+common_mistakes:
+  developer: "backend-developer"       # Use 'backend-developer' not 'developer'
+  senior-developer: "backend-developer" # Use 'backend-developer'
+  analyst: "data-analyst"              # Use 'data-analyst' not 'analyst'
+  performance: "performance-profiler"  # Use 'performance-profiler' not 'performance'
+  tester: "test-engineer"              # Use 'test-engineer' not 'tester'
+  security: "security-engineer"        # Use 'security-engineer' not 'security'
+  database: "supabase-expert"          # Use 'supabase-expert' not 'database'
+
+# ─── Dispatch Patterns ─────────────────────────────────────────────
+
+dispatch_patterns:
+  new_component:
+    - frontend-developer
+    - test-engineer
+    - reviewer
+  api_endpoint:
+    - api-developer
+    - test-engineer
+    - reviewer
+  security_audit:
+    - security-engineer
+    - reviewer
+  performance_fix:
+    - performance-profiler
+    - frontend-developer
+
+# ─── PR Type → Skill Routing ──────────────────────────────────────
+
+pr_type_skills:
+  feature: [frontend-developer, backend-developer, test-engineer]
+  bugfix: [debugger, test-engineer]
+  refactor: [architect, reviewer]
+  security: [security-engineer, reviewer]
+  performance: [performance-profiler, frontend-developer]
+  testing: [test-engineer, quality-engineer]
+  documentation: [reviewer]
+  infrastructure: [monitoring-specialist, vnx-manager]
+
+# ─── Complexity Routing ────────────────────────────────────────────
+
+complexity_routing:
+  simple:
+    cognition: shallow
+    model: sonnet
+    track: A
+  standard:
+    cognition: normal
+    model: sonnet
+    track: A
+  complex:
+    cognition: deep
+    model: opus
+    track: C
+  failed_retry:
+    cognition: deep
+    model: opus
+    track: C
+
+# ─── Self-Invocation Rules ────────────────────────────────────────
+
+self_invocation:
+  t0-orchestrator:
+    can_dispatch_to: all
+    cannot_dispatch_to_self: true
+  vnx-manager:
+    terminal: T-MANAGER
+    not_dispatchable_by_t0: true
+
+# ─── T0 Selection Logic ───────────────────────────────────────────
+
+t0_selection_logic:
+  steps:
+    - "1. Identify task type from PR/feature description"
+    - "2. Match to pr_type_skills for initial skill candidates"
+    - "3. Check dispatch_patterns for task-specific routing"
+    - "4. Validate skill exists in valid_skills list"
+    - "5. If skill not found, check common_mistakes for correction"
+    - "6. Select track based on complexity_routing"
+    - "7. Create Manager Block with validated skill"

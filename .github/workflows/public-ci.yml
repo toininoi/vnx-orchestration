@@ -1,0 +1,72 @@
+name: VNX Public CI
+
+on:
+  push:
+    branches: ["main", "baseline/**"]
+  pull_request:
+
+jobs:
+  smoke:
+    name: vnx doctor smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Legacy path gate
+        run: |
+          set -euo pipefail
+          matches=$(rg -n "state/" "$GITHUB_WORKSPACE/.claude/vnx-system/scripts" \
+            --glob "!**/archived*/**" \
+            --glob "!**/archive*/**" \
+            --glob "!**/*.DEPRECATED" \
+            --glob "!**/test_dashboard_sync.py" || true)
+          if [ -n "$matches" ]; then
+            echo "$matches"
+            echo "Legacy path literals detected. Use VNX_STATE_DIR via vnx_paths."
+            exit 1
+          fi
+
+      - name: Install to fresh project
+        run: |
+          chmod +x ./install.sh
+          TMP_PROJECT="$(mktemp -d)"
+          ./install.sh "$TMP_PROJECT"
+          "$TMP_PROJECT/.vnx/bin/vnx" init
+          "$TMP_PROJECT/.vnx/bin/vnx" doctor
+
+  secret-scan:
+    name: secret scan (gitleaks)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install gitleaks
+        run: |
+          VERSION="8.24.2"
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
+            | tar -xz
+          chmod +x gitleaks
+
+      - name: Scan shipped dist files
+        run: |
+          chmod +x ./install.sh
+          TMP_PROJECT="$(mktemp -d)"
+          ./install.sh "$TMP_PROJECT"
+          ./gitleaks detect \
+            --source "$TMP_PROJECT/.vnx" \
+            --no-git \
+            --redact \
+            --config .gitleaks.toml \
+            --report-format json \
+            --report-path /tmp/gitleaks_report.json \
+            --exit-code 1 \
+            || { echo "---- gitleaks report ----"; cat /tmp/gitleaks_report.json; exit 1; }

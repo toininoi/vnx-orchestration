@@ -1,0 +1,46 @@
+{
+  "description": "Enforced intelligence hooks with flag-based validation",
+  "version": "3.0",
+  "token_overhead": "~100 tokens per dispatch (enforcement)",
+  "enforcement_mechanism": "Hash-based ACK flag with approve/deny signals",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/sessionstart_t0_intelligence.sh",
+            "timeoutMs": 2000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/pretooluse_dispatch_check.sh",
+            "timeoutMs": 3000
+          }
+        ]
+      }
+    ]
+  },
+  "workflows": {
+    "t0_intelligence_workflow": {
+      "step_1": "Read t0_brief.json and progress_state.yaml",
+      "step_2": "Run: .claude/vnx-system/scripts/intelligence_refresh.sh",
+      "step_3": "ACK flag set, hash cached",
+      "step_4": "Create dispatch - PreToolUse hook validates ACK",
+      "step_5": "Hook returns 'approve' if valid, 'deny' if stale/missing"
+    }
+  },
+  "cache_files": {
+    "ack_flag": ".claude/vnx-system/state/cache/intelligence_ack.flag",
+    "hash_cache": ".claude/vnx-system/state/cache/intelligence.hash",
+    "last_summary": ".claude/vnx-system/state/cache/last_summary.txt"
+  }
+}

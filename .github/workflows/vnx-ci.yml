@@ -1,0 +1,139 @@
+name: VNX CI
+
+on:
+  push:
+    branches: ["main", "baseline/**"]
+  pull_request:
+
+jobs:
+  profile-a:
+    name: Profile A (doctor + core tests)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml
+
+      - name: Prepare expected repo layout
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/.claude"
+          rsync -a --exclude '.git' --exclude '.claude' ./ "$GITHUB_WORKSPACE/.claude/vnx-system/"
+          rsync -a ./skills/ "$GITHUB_WORKSPACE/.claude/skills/"
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Legacy path gate
+        run: |
+          set -euo pipefail
+          matches=$(rg -n "state/" "$GITHUB_WORKSPACE/.claude/vnx-system/scripts" \
+            --glob "!**/archived*/**" \
+            --glob "!**/archive*/**" \
+            --glob "!**/*.DEPRECATED" \
+            --glob "!**/test_dashboard_sync.py" || true)
+          if [ -n "$matches" ]; then
+            echo "$matches"
+            echo "Legacy path literals detected. Use VNX_STATE_DIR via vnx_paths."
+            exit 1
+          fi
+
+      - name: Run Profile A
+        env:
+          VNX_HOME: ${{ github.workspace }}/.claude/vnx-system
+          VNX_DATA_DIR: ${{ github.workspace }}/.vnx-data
+        run: |
+          set -euo pipefail
+          bash "$VNX_HOME/scripts/vnx_doctor.sh"
+          if [ -f "$VNX_DATA_DIR/state/progress_state.yaml" ] && [ -f "$VNX_DATA_DIR/state/progress_state.yaml.sha256" ]; then
+            python3 "$VNX_HOME/scripts/state_integrity.py" verify "$VNX_DATA_DIR/state/progress_state.yaml"
+          else
+            echo "[skip] progress_state checksum not available"
+          fi
+          pytest -q \
+            "$VNX_HOME/tests/test_cli_json_output.py" \
+            "$VNX_HOME/tests/test_validate_template_tokens.py" \
+            "$VNX_HOME/tests/test_receipt_ci_guard.py" \
+            -p no:cacheprovider \
+            --basetemp=/tmp/vnx_pytest_safe
+
+  profile-b:
+    name: Profile B (snapshot integration)
+    runs-on: ubuntu-latest
+    needs: profile-a
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml
+
+      - name: Prepare expected repo layout
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/.claude"
+          rsync -a --exclude '.git' --exclude '.claude' ./ "$GITHUB_WORKSPACE/.claude/vnx-system/"
+          rsync -a ./skills/ "$GITHUB_WORKSPACE/.claude/skills/"
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Legacy path gate
+        run: |
+          set -euo pipefail
+          matches=$(rg -n "state/" "$GITHUB_WORKSPACE/.claude/vnx-system/scripts" \
+            --glob "!**/archived*/**" \
+            --glob "!**/archive*/**" \
+            --glob "!**/*.DEPRECATED" \
+            --glob "!**/test_dashboard_sync.py" || true)
+          if [ -n "$matches" ]; then
+            echo "$matches"
+            echo "Legacy path literals detected. Use VNX_STATE_DIR via vnx_paths."
+            exit 1
+          fi
+
+      - name: Run Profile B
+        run: |
+          set -euo pipefail
+          START_DIR="$GITHUB_WORKSPACE"
+          SNAPSHOT_ROOT="$(mktemp -d /tmp/vnx-safe-tests.XXXXXX)"
+          SNAPSHOT_REPO="$SNAPSHOT_ROOT/repo"
+          trap 'rm -rf "$SNAPSHOT_ROOT"' EXIT
+
+          mkdir -p "$SNAPSHOT_REPO/.claude/vnx-system"
+          rsync -a --exclude '__pycache__' "$START_DIR/.claude/vnx-system/scripts/" "$SNAPSHOT_REPO/.claude/vnx-system/scripts/"
+          rsync -a --exclude '__pycache__' "$START_DIR/.claude/vnx-system/tests/" "$SNAPSHOT_REPO/.claude/vnx-system/tests/"
+          if [ -d "$START_DIR/.claude/vnx-system/dispatches" ]; then
+            rsync -a --exclude '__pycache__' "$START_DIR/.claude/vnx-system/dispatches/" "$SNAPSHOT_REPO/.claude/vnx-system/dispatches/"
+          else
+            mkdir -p "$SNAPSHOT_REPO/.claude/vnx-system/dispatches"
+          fi
+          mkdir -p "$SNAPSHOT_REPO/.claude/vnx-system/state" "$SNAPSHOT_REPO/.claude/vnx-system/templates"
+          printf '# Feature: Snapshot\n' > "$SNAPSHOT_REPO/FEATURE_PLAN.md"
+
+          cd "$SNAPSHOT_REPO"
+          export VNX_HOME="$SNAPSHOT_REPO/.claude/vnx-system"
+          export VNX_DATA_DIR="$SNAPSHOT_REPO/.claude/vnx-system"
+          python3 .claude/vnx-system/tests/test_pr_recommendation_integration.py

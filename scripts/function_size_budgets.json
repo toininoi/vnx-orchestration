@@ -1,0 +1,46 @@
+{
+  "budgets": [
+    {
+      "file": "check_intelligence_health.py",
+      "language": "python",
+      "function": "check_health",
+      "max_lines": 95
+    },
+    {
+      "file": "gather_intelligence.py",
+      "language": "python",
+      "function": "main",
+      "max_lines": 220
+    },
+    {
+      "file": "pr_queue_manager.py",
+      "language": "python",
+      "function": "init_feature_batch",
+      "max_lines": 200
+    },
+    {
+      "file": "pr_queue_manager.py",
+      "language": "python",
+      "function": "patch_dispatch",
+      "max_lines": 160
+    },
+    {
+      "file": "dispatcher_v8_minimal.sh",
+      "language": "shell",
+      "function": "dispatch_with_skill_activation",
+      "max_lines": 280
+    },
+    {
+      "file": "generate_t0_brief.sh",
+      "language": "shell",
+      "function": "main",
+      "max_lines": 520
+    },
+    {
+      "file": "receipt_processor_v4.sh",
+      "language": "shell",
+      "function": "process_single_report",
+      "max_lines": 400
+    }
+  ]
+}
