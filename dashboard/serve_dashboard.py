@@ -16,6 +16,7 @@ It serves `.claude/vnx-system` so these paths work:
 from __future__ import annotations
 
 import contextlib
+from datetime import datetime, timezone
 import json
 import os
 import socket
@@ -68,6 +69,83 @@ PROCESS_KILL_PATTERNS = {
     "intelligence_daemon": "intelligence_daemon.py",
 }
 
+TERMINAL_TRACK_MAP = {
+    "T1": "A",
+    "T2": "B",
+    "T3": "C",
+}
+
+
+def _json_response(handler: "DashboardHandler", status: HTTPStatus, payload_obj: dict) -> None:
+    payload = json.dumps(payload_obj).encode("utf-8")
+    handler.send_response(status)
+    handler.send_header("Content-Type", "application/json")
+    handler.send_header("Content-Length", str(len(payload)))
+    handler.send_header("Access-Control-Allow-Origin", "*")
+    handler.end_headers()
+    handler.wfile.write(payload)
+
+
+def _unlock_terminal(terminal_id: str) -> dict:
+    if terminal_id not in TERMINAL_TRACK_MAP:
+        raise ValueError(f"Unknown terminal: {terminal_id}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    terminal_shadow_script = SCRIPTS_DIR / "terminal_state_shadow.py"
+    progress_update_script = SCRIPTS_DIR / "update_progress_state.py"
+
+    shadow_result = subprocess.run(
+        [
+            "python3",
+            str(terminal_shadow_script),
+            "--terminal-id",
+            terminal_id,
+            "--status",
+            "idle",
+            "--clear-claim",
+            "--last-activity",
+            now,
+            "--state-dir",
+            str(CANONICAL_STATE_DIR),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    track = TERMINAL_TRACK_MAP[terminal_id]
+    subprocess.run(
+        [
+            "python3",
+            str(progress_update_script),
+            "--track",
+            track,
+            "--status",
+            "idle",
+            "--dispatch-id",
+            "",
+            "--updated-by",
+            "dashboard_unlock",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    shadow_record = {}
+    stdout = shadow_result.stdout.strip()
+    if stdout:
+        with contextlib.suppress(Exception):
+            shadow_record = json.loads(stdout)
+
+    return {
+        "status": "ok",
+        "terminal": terminal_id,
+        "track": track,
+        "unlocked_at": now,
+        "terminal_state": shadow_record,
+    }
+
 
 class DashboardHandler(SimpleHTTPRequestHandler):
     def translate_path(self, path: str) -> str:
@@ -94,7 +172,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_POST(self) -> None:
-        if self.path != "/api/restart-process":
+        if self.path not in ("/api/restart-process", "/api/unlock-terminal"):
             self.send_error(HTTPStatus.NOT_FOUND, "Unknown endpoint")
             return
 
@@ -104,6 +182,23 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             data = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
             self.send_error(HTTPStatus.BAD_REQUEST, "Invalid JSON body")
+            return
+
+        if self.path == "/api/unlock-terminal":
+            terminal_id = data.get("terminal")
+            if terminal_id not in TERMINAL_TRACK_MAP:
+                self.send_error(HTTPStatus.BAD_REQUEST, f"Unknown terminal: {terminal_id}")
+                return
+            try:
+                response = _unlock_terminal(terminal_id)
+            except subprocess.CalledProcessError as exc:
+                stderr = (exc.stderr or "").strip()
+                self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, f"Unlock failed: {stderr or exc}")
+                return
+            except Exception as exc:
+                self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, f"Unlock failed: {exc}")
+                return
+            _json_response(self, HTTPStatus.OK, response)
             return
 
         process_name = data.get("process")
@@ -132,13 +227,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
 
         response = {"status": "ok", "process": process_name}
-        payload = json.dumps(response).encode("utf-8")
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(payload)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(payload)
+        _json_response(self, HTTPStatus.OK, response)
 
 
 def main() -> None:

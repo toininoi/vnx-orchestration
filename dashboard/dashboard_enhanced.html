@@ -290,6 +290,32 @@
             color: #ff3366;
         }
 
+        .terminal-header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .unlock-btn {
+            background: rgba(255, 170, 0, 0.2);
+            color: #ffaa00;
+            border: 1px solid #ffaa00;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .unlock-btn:hover {
+            background: rgba(255, 170, 0, 0.3);
+        }
+
+        .unlock-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .refresh-indicator {
             position: fixed;
             top: 20px;
@@ -501,7 +527,10 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">⚡ T1 Track A Worker</h3>
-                    <span class="card-badge" id="t1-status-badge">Working</span>
+                    <div class="terminal-header-controls">
+                        <span class="card-badge" id="t1-status-badge">Working</span>
+                        <button class="unlock-btn" onclick="unlockTerminal('T1', this)">Unlock</button>
+                    </div>
                 </div>
                 <div class="terminal-info">
                     <div class="terminal-stat">
@@ -523,7 +552,10 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">🔧 T2 Track B Worker</h3>
-                    <span class="card-badge" id="t2-status-badge">Idle</span>
+                    <div class="terminal-header-controls">
+                        <span class="card-badge" id="t2-status-badge">Idle</span>
+                        <button class="unlock-btn" onclick="unlockTerminal('T2', this)">Unlock</button>
+                    </div>
                 </div>
                 <div class="terminal-info">
                     <div class="terminal-stat">
@@ -545,7 +577,10 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">🔬 T3 Complex Tasks</h3>
-                    <span class="card-badge" id="t3-status-badge">Working</span>
+                    <div class="terminal-header-controls">
+                        <span class="card-badge" id="t3-status-badge">Working</span>
+                        <button class="unlock-btn" onclick="unlockTerminal('T3', this)">Unlock</button>
+                    </div>
                 </div>
                 <div class="terminal-info">
                     <div class="terminal-stat">
@@ -601,6 +636,37 @@
                 console.error('Failed to restart process:', error);
                 btn.textContent = 'Restart';
                 btn.disabled = false;
+            }
+        }
+
+        async function unlockTerminal(terminalId, button) {
+            if (!confirm(`Unlock ${terminalId}? This sets terminal + track status to idle and clears active dispatch.`)) {
+                return;
+            }
+
+            button.disabled = true;
+            const originalText = button.textContent;
+            button.textContent = 'Unlocking...';
+
+            try {
+                const response = await fetch('/api/unlock-terminal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ terminal: terminalId })
+                });
+
+                if (!response.ok) {
+                    const message = await response.text();
+                    throw new Error(message || 'unlock failed');
+                }
+
+                await fetchAllData();
+            } catch (error) {
+                console.error(`Failed to unlock ${terminalId}:`, error);
+                alert(`Failed to unlock ${terminalId}. Check dashboard server logs.`);
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
             }
         }
         
