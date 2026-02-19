@@ -58,8 +58,6 @@ Evidence is based on ripgrep matches in `.claude/vnx-system/scripts`, `.claude/v
   Evidence: `.claude/vnx-system/tests/test_cli_json_output.py:40`, `.claude/terminals/T-MANAGER/20260128-PR8-INTELLIGENCE-HOOKS-ADDED.md:45`, `.claude/terminals/T-MANAGER/20260128-PR8-INTELLIGENCE-HOOKS-ADDED.md:104`
 - `intelligence_refresh.sh`
   Evidence: `.claude/vnx-system/configs/t0_hooks_enforced.json:35`, `.claude/vnx-system/docs/implementation/P1_MIGRATION_REPORT.md:92`, `.claude/vnx-system/docs/operations/RECEIPT_PROCESSING_FLOW.md:35`
-- `launch_dashboards.sh`
-  Evidence: `./VNX_HYBRID_FINAL copy.sh:291`, `./VNX_HYBRID_FINAL copy.sh:293`, `./VNX_HYBRID_FINAL.sh:293`
 - `learning_loop.py`
   Evidence: `.claude/vnx-system/scripts/learning_loop.py:583`, `.claude/vnx-system/docs/core/technical/INTELLIGENCE_SYSTEM.md:665`, `.claude/vnx-system/docs/core/technical/INTELLIGENCE_SYSTEM.md:741`
 - `lib/vnx_paths.py`

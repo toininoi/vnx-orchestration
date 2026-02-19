@@ -136,10 +136,9 @@ echo "  Seeded: API, services, models, tests"
 cat > "$PROJECT_DIR/src/services/lead_scoring_engine.py" << 'PYEOF'
 """Lead Scoring Engine - Core scoring implementation.
 
-⚠️  DEMO TRAP FILE: This file intentionally exceeds 500 lines to validate
-the quality advisory pipeline. When an agent commits changes touching this
-file, quality_advisory.py emits file_size_warning and T0 sees
-approve_with_followup. See demo/setup_demo.sh for context.
+Handles behavioral, firmographic, demographic and engagement scoring
+dimensions with configurable weights, 0-100 normalization, and full
+audit trail for compliance and debugging.
 """
 from __future__ import annotations
 
@@ -826,6 +825,17 @@ echo "  Cloned VNX from: $VNX_REPO"
 cd "$PROJECT_DIR"
 bash .claude/vnx-system/bin/vnx init
 echo "  VNX initialized (terminals, skills, hooks, database)"
+
+# Verify T0 orchestration assets were unpacked from current shipped templates/skills.
+if ! grep -q "T0 orchestration uses \`CLAUDE.md\` only." "$PROJECT_DIR/.claude/terminals/T0/CLAUDE.md"; then
+  echo "  ERROR: T0 CLAUDE.md is not the expected current template."
+  exit 1
+fi
+if ! grep -q "T0 orchestration itself uses \`CLAUDE.md\` only." "$PROJECT_DIR/.claude/skills/t0-orchestrator/SKILL.md"; then
+  echo "  ERROR: t0-orchestrator SKILL.md is not the expected current skill."
+  exit 1
+fi
+echo "  Verified: T0 CLAUDE.md + t0-orchestrator skill are current"
 
 # Configure T1 = Codex CLI (multi-model demo)
 mkdir -p "$PROJECT_DIR/.vnx-data"

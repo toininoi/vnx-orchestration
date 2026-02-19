@@ -25,8 +25,9 @@ MAX_AGE_HOURS="${VNX_MAX_AGE_HOURS:-24}"        # Only process reports from last
 RATE_LIMIT="${VNX_RATE_LIMIT:-10}"              # Max receipts per minute
 FLOOD_THRESHOLD="${VNX_FLOOD_THRESHOLD:-50}"    # Circuit breaker threshold
 MODE="${VNX_MODE:-monitor}"                     # monitor|catchup|manual
-FSWATCH_RETRIES="${VNX_FSWATCH_RETRIES:-3}"     # fswatch restart attempts before polling fallback
-FSWATCH_BACKOFF="${VNX_FSWATCH_BACKOFF:-5}"     # seconds between fswatch restarts
+POLL_INTERVAL="${VNX_POLL_INTERVAL:-5}"          # seconds between report directory scans
+# FSWATCH_RETRIES="${VNX_FSWATCH_RETRIES:-3}"   # (disabled) fswatch restart attempts before polling fallback
+# FSWATCH_BACKOFF="${VNX_FSWATCH_BACKOFF:-5}"   # (disabled) seconds between fswatch restarts
 CONFIRMATION_GRACE_SECONDS="${VNX_CONFIRMATION_GRACE_SECONDS:-300}"  # Lease window for no-confirmation blocks
 
 # State files
@@ -805,15 +806,19 @@ process_pending_reports() {
 }
 
 # Monitor mode - watch for new reports only
-# Poll for new reports at 30s intervals (fallback when fswatch unavailable/unstable).
+# Polls the unified_reports directory at POLL_INTERVAL (default 5s).
+# Previously used fswatch for sub-second detection, but the external process
+# caused orphan fswatches, duplicate watchers, and fseventsd memory bloat
+# (5+ GB observed). Polling at 5s is effectively free (<1ms per cycle) and
+# eliminates the entire class of process-lifecycle bugs.
 _poll_new_reports() {
-    log "INFO" "Using polling mode (30s intervals)"
+    log "INFO" "Using polling mode (${POLL_INTERVAL}s intervals)"
     while true; do
         for report in "$UNIFIED_REPORTS"/*.md; do
             [ -f "$report" ] || continue
             should_process_report "$report" && process_single_report "$report"
         done
-        sleep 30
+        sleep "$POLL_INTERVAL"
     done
 }
 
@@ -839,78 +844,69 @@ monitor_new_reports() {
     done
     [ "$catchup_count" -gt 0 ] && log "INFO" "Startup catchup complete: $catchup_count reports processed"
 
-    if ! command -v fswatch >/dev/null 2>&1; then
-        _poll_new_reports; return
-    fi
+    # Polling mode — simple, no external processes, no orphan risk.
+    _poll_new_reports
 
-    log "INFO" "Using fswatch for real-time monitoring"
-    local fail_count=0
-    while true; do
-        # Start fswatch in background, write to a named pipe (FIFO).
-        # Reading from the FIFO on fd 3 isolates the data stream from stdin,
-        # preventing Python subprocesses from stealing fswatch events.
-        # Using a FIFO + background process (vs process substitution) lets us
-        # capture the real exit code via wait $PID.
-        local fifo="$STATE_DIR/.fswatch_fifo.$$"
-        rm -f "$fifo"
-        mkfifo "$fifo"
-
-        fswatch -0 "$UNIFIED_REPORTS" > "$fifo" &
-        local fswatch_pid=$!
-
-        # Read fswatch events with a periodic full sweep.
-        # macOS FSEvents can silently drop events for rapid create+close
-        # operations, so we sweep ALL reports every 30 seconds regardless
-        # of whether fswatch fires. Dedup via processed_hashes keeps this
-        # idempotent and cheap.
-        local last_sweep=$(date +%s)
-        while true; do
-            local path=""
-            if IFS= read -r -d '' -t 5 path <&3; then
-                [[ "$path" == *.md ]] && should_process_report "$path" && process_single_report "$path"
-            fi
-
-            # Sweep every 30 seconds — runs after EVERY read (event or timeout).
-            local now_ts=$(date +%s)
-            if [ $((now_ts - last_sweep)) -ge 30 ]; then
-                for report in "$UNIFIED_REPORTS"/*.md; do
-                    [ -f "$report" ] || continue
-                    should_process_report "$report" && process_single_report "$report"
-                done
-                last_sweep=$now_ts
-            fi
-
-            # If fswatch process exited, break and restart/fallback logic below.
-            if ! kill -0 "$fswatch_pid" 2>/dev/null; then
-                break
-            fi
-        done 3< "$fifo"
-
-        # wait gives us the real fswatch exit code (signal 143 = SIGTERM, etc.)
-        wait "$fswatch_pid" 2>/dev/null
-        local exit_code=$?
-        rm -f "$fifo"
-
-        fail_count=$((fail_count + 1))
-        log "WARN" "fswatch exited (code=$exit_code). Failures: $fail_count/$FSWATCH_RETRIES"
-        if [ "$fail_count" -ge "$FSWATCH_RETRIES" ]; then
-            log "WARN" "fswatch unstable; falling back to polling mode"
-            _poll_new_reports; return
-        fi
-        sleep "$FSWATCH_BACKOFF"
-    done
+    # ── fswatch (disabled) ────────────────────────────────────────────
+    # Previously used fswatch for sub-second file detection. Disabled
+    # because the external process caused:
+    #   - Orphan fswatch processes surviving parent death (PPID → 1)
+    #   - Duplicate watchers from singleton race under memory pressure
+    #   - fseventsd memory bloat (5+ GB observed with multiple watchers)
+    #   - macOS FSEvents silently dropping rapid create+close events
+    # Polling at 5s is effectively free and eliminates all of the above.
+    # To re-enable: set VNX_USE_FSWATCH=1 and uncomment the block below.
+    #
+    # if [ "${VNX_USE_FSWATCH:-0}" = "1" ] && command -v fswatch >/dev/null 2>&1; then
+    #     log "INFO" "Using fswatch for real-time monitoring"
+    #     local fail_count=0
+    #     while true; do
+    #         local fifo="$STATE_DIR/.fswatch_fifo.$$"
+    #         rm -f "$fifo"
+    #         mkfifo "$fifo"
+    #         fswatch -0 "$UNIFIED_REPORTS" > "$fifo" &
+    #         local fswatch_pid=$!
+    #         local last_sweep=$(date +%s)
+    #         while true; do
+    #             local path=""
+    #             if IFS= read -r -d '' -t 5 path <&3; then
+    #                 [[ "$path" == *.md ]] && should_process_report "$path" && process_single_report "$path"
+    #             fi
+    #             local now_ts=$(date +%s)
+    #             if [ $((now_ts - last_sweep)) -ge 30 ]; then
+    #                 for report in "$UNIFIED_REPORTS"/*.md; do
+    #                     [ -f "$report" ] || continue
+    #                     should_process_report "$report" && process_single_report "$report"
+    #                 done
+    #                 last_sweep=$now_ts
+    #             fi
+    #             if ! kill -0 "$fswatch_pid" 2>/dev/null; then
+    #                 break
+    #             fi
+    #         done 3< "$fifo"
+    #         wait "$fswatch_pid" 2>/dev/null
+    #         local exit_code=$?
+    #         rm -f "$fifo"
+    #         fail_count=$((fail_count + 1))
+    #         log "WARN" "fswatch exited (code=$exit_code). Failures: $fail_count/$FSWATCH_RETRIES"
+    #         if [ "$fail_count" -ge "$FSWATCH_RETRIES" ]; then
+    #             log "WARN" "fswatch unstable; falling back to polling mode"
+    #             _poll_new_reports; return
+    #         fi
+    #         sleep "$FSWATCH_BACKOFF"
+    #     done
+    # fi
 }
 
 # Cleanup on exit - gracefully stop child processes (fswatch, subshells) to prevent orphans.
 # pkill -P sends SIGTERM (graceful), not SIGKILL — children get a chance to clean up.
 cleanup() {
     log "INFO" "Shutting down receipt processor (PID: $$)..."
-    # SIGTERM direct children (fswatch background process, subshells) — graceful shutdown
     pkill -TERM -P $$ 2>/dev/null || true
     sleep 0.5
     release_receipt_lock  # Ensure lock is released
     rm -f "$PID_FILE"
-    # Clean up fswatch FIFO and singleton lock
+    # Clean up singleton lock (and legacy fswatch FIFO if it exists)
     rm -f "$STATE_DIR/.fswatch_fifo.$$"
     rm -rf "$VNX_LOCKS_DIR/receipt_processor_v4.sh.lock"
     rm -f "$VNX_PIDS_DIR/receipt_processor_v4.sh.pid" "$VNX_PIDS_DIR/receipt_processor_v4.sh.pid.fingerprint"

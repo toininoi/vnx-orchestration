@@ -46,6 +46,7 @@ fix_git_history.sh
 
 # Root-level runtime files
 index.html
+!dashboard/index.html
 
 # Runtime PID files
 *.pid
