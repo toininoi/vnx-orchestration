@@ -222,10 +222,9 @@ vnx_kill_all_orchestration() {
     done
   fi
 
-  # Kill orphan fswatch processes watching this project's directories.
-  # fswatch spawns as a child of receipt_processor but survives parent
-  # death (PPID becomes 1), then steals inotify/kqueue events from the
-  # new receipt_processor instance.
+  # Kill legacy orphan fswatch processes watching this project's directories.
+  # fswatch is no longer started by receipt_processor (replaced by 5s polling),
+  # but orphans from previous versions may still be running.
   local reports_dir="${VNX_REPORTS_DIR:-$VNX_DATA_DIR/unified_reports}"
   local pid cmd
   while IFS= read -r pid; do
