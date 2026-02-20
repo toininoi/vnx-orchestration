@@ -467,12 +467,12 @@ cmd_start() {
       case "$t1_provider" in
         codex_cli|codex) t1_cmd="codex -m $codex_model" ;;
         gemini_cli|gemini) t1_cmd="gemini -m $gemini_model --include-directories '$PROJECT_ROOT'" ;;
-        *) t1_cmd="claude --model sonnet --dangerously-skip-permissions" ;;
+        *) t1_cmd="claude --model sonnet" ;;
       esac
       case "$t2_provider" in
         codex_cli|codex) t2_cmd="codex -m $codex_model" ;;
         gemini_cli|gemini) t2_cmd="gemini -m $gemini_model --include-directories '$PROJECT_ROOT'" ;;
-        *) t2_cmd="claude --model sonnet --dangerously-skip-permissions" ;;
+        *) t2_cmd="claude --model sonnet" ;;
       esac
 
       local node_path="$HOME/.nvm/versions/node/v20.18.2/bin"
@@ -1547,20 +1547,47 @@ cmd_bootstrap_hooks() {
       "Read(**)",
       "Grep(**)",
       "Glob(**)",
-      "Bash"
+      "Bash(ls *)",
+      "Bash(ls)",
+      "Bash(find *)",
+      "Bash(cat *)",
+      "Bash(echo *)",
+      "Bash(pwd)",
+      "Bash(pwd *)",
+      "Bash(which *)",
+      "Bash(whoami)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(sort *)",
+      "Bash(grep *)",
+      "Bash(awk *)",
+      "Bash(sed *)",
+      "Bash(jq *)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(node *)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git branch*)",
+      "Bash(git show*)",
+      "Bash(git remote*)",
+      "Bash(tmux *)",
+      "Bash(ps *)",
+      "Bash(pgrep *)",
+      "Bash(date)",
+      "Bash(date *)",
+      "Bash(uname *)"
     ],
-    "ask": [
-      "Write(**)",
-      "Edit(**)",
-      "MultiEdit(**)",
-      "NotebookEdit(**)",
-      "Bash(sudo:*)",
-      "Bash(rm -rf:*)",
-      "Bash(rm:*)",
-      "Bash(chmod:*)",
-      "Bash(chown:*)"
-    ],
-    "deny": []
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Bash(chmod *)",
+      "Bash(chown *)",
+      "Bash(mkfs *)",
+      "Bash(dd *)"
+    ]
   },
   "hooks": {
     "SessionStart": [
