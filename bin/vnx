@@ -438,7 +438,16 @@ cmd_start() {
     active_cli_count="$(tmux list-panes -t "$session_name" -F '#{pane_current_command}' 2>/dev/null \
       | awk '$1=="node" || $1=="claude" || $1=="codex" || $1=="gemini" {c++} END {print c+0}')"
 
-    if [ "${active_cli_count:-0}" -eq 0 ]; then
+    # If a profile was explicitly selected, kill the existing session and restart
+    # fresh so the chosen providers are actually applied to T1/T2.
+    if [ -n "$profile_name" ] && [ "${active_cli_count:-0}" -gt 0 ]; then
+      log "Profile '$profile_name' selected — restarting session to apply providers (T1=$t1_provider, T2=$t2_provider)..."
+      vnx_kill_all_orchestration "$scripts_dir" "$log_dir" "profile_restart"
+      tmux kill-session -t "$session_name" 2>/dev/null || true
+      sleep 1
+      # Fall through to fresh session creation below.
+
+    elif [ "${active_cli_count:-0}" -eq 0 ]; then
       log "Detected stale $session_name session (shells only). Re-launching terminal CLIs..."
 
       # Kill ALL stale orchestration processes before re-launching CLIs.
@@ -549,14 +558,16 @@ TSJSON
       fi
     else
       log "VNX session already running. Attaching..."
+      if [ -z "${TMUX:-}" ]; then
+        exec tmux attach-session -t "$session_name"
+      else
+        tmux switch-client -t "$session_name"
+      fi
+      return 0
     fi
 
-    if [ -z "${TMUX:-}" ]; then
-      exec tmux attach-session -t "$session_name"
-    else
-      tmux switch-client -t "$session_name"
-    fi
-    return 0
+    # Profile restart: session was killed above — fall through to fresh start below.
+    # (no return here — let execution continue to the fresh session creation code)
   fi
 
   # ── Terminal .claude + .vnx-data symlinks ────────────────────────────
