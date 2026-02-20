@@ -34,9 +34,10 @@ cd vnx-orchestration-system
 
 # 3. Initialize, validate, and launch
 cd /path/to/your/project
-.vnx/bin/vnx init       # Create runtime directories and config
-.vnx/bin/vnx doctor     # Validate toolchain and layout
-.vnx/bin/vnx start      # Launch tmux session with 4 panes (T0-T3)
+.vnx/bin/vnx bootstrap-skills     # Copy skills to .claude/, .agents/, .gemini/
+.vnx/bin/vnx bootstrap-terminals  # Create terminal CLAUDE.md files
+.vnx/bin/vnx doctor               # Validate toolchain and layout
+.vnx/bin/vnx start                # Launch tmux session (interactive profile selection)
 ```
 
 `vnx start` creates a tmux session with a 2x2 grid:
@@ -44,14 +45,28 @@ cd /path/to/your/project
 ```
 ┌──────────────────┬──────────────────┐
 │  T0 (orchestrator)│  T1 (Track A)    │
-│  dispatches tasks │  worker terminal │
+│  Claude Opus     │  Claude / Codex  │
+│                  │  / Gemini CLI    │
 ├──────────────────┼──────────────────┤
 │  T2 (Track B)    │  T3 (Track C)    │
-│  worker terminal │  deep specialist  │
+│  Claude / Codex  │  Claude Opus     │
+│  / Gemini CLI    │  deep specialist │
 └──────────────────┴──────────────────┘
 ```
 
-Open your AI CLI in each pane. T0 coordinates; T1-T3 execute.
+### Multi-provider profiles
+
+Choose your provider combination at startup:
+
+```bash
+.vnx/bin/vnx start                          # Interactive menu
+.vnx/bin/vnx start --profile claude-only    # All Claude Code
+.vnx/bin/vnx start --profile claude-codex   # T1: Codex CLI
+.vnx/bin/vnx start --profile claude-gemini  # T1: Gemini CLI
+.vnx/bin/vnx start --profile full-multi     # T1: Codex, T2: Gemini
+```
+
+T0 (orchestrator) and T3 (deep specialist) always run Claude Opus.
 
 ## Demo (no LLM required)
 
@@ -106,14 +121,21 @@ This clones the latest release, runs `install.sh`, and preserves your runtime da
 | [Open Method](docs/manifesto/OPEN_METHOD.md) | How VNX was built — AI as junior developer, not autopilot |
 | [Limitations](docs/manifesto/LIMITATIONS.md) | Tested scope, known gaps, and design constraints |
 
-## Implementation Lives Here
+## Project layout after install
 
-- Runtime orchestration scripts: `.claude/vnx-system/scripts/`
-- Main CLI entrypoint: `.claude/vnx-system/bin/vnx`
-- Dashboard server/assets: `.claude/vnx-system/dashboard/`
-- Dispatch queue and templates: `.claude/vnx-system/dispatches/` and `.claude/vnx-system/templates/`
-- State and receipts during execution: `.vnx-data/`
-- Manifesto and public architecture docs: `.claude/vnx-system/docs/manifesto/`
+```
+your-project/
+├── .vnx/              # VNX system (installed from this repo)
+│   ├── bin/vnx        # Main CLI entrypoint
+│   ├── scripts/       # Orchestration scripts (dispatcher, supervisor, etc.)
+│   ├── dashboard/     # Real-time monitoring dashboard
+│   ├── skills/        # Shipped skill templates
+│   └── docs/          # Architecture and operations docs
+├── .claude/skills/    # Claude Code skills (copied by bootstrap-skills)
+├── .agents/skills/    # Codex CLI skills (project-local, copied by bootstrap-skills)
+├── .gemini/skills/    # Gemini CLI skills (project-local, copied by bootstrap-skills)
+└── .vnx-data/         # Runtime state: dispatches, receipts, logs (never commit)
+```
 
 ## CI
 
