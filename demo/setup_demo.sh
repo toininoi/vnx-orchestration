@@ -760,6 +760,10 @@ uvicorn src.api.main:app --reload --port 8000
 pytest tests/
 ```
 
+## Git Workflow
+- Work directly on `main` branch. Do NOT create feature branches.
+- Commit directly to main — no PRs needed for this project.
+
 ## Key Constraints
 - Python 3.10+
 - FastAPI for API layer
