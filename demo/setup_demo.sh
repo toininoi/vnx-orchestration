@@ -775,6 +775,7 @@ echo "  Created: CLAUDE.md"
 
 # Prevent global MCP servers from being enabled in the demo
 # settings.local.json with empty enabledMcpjsonServers overrides any user defaults
+mkdir -p "$PROJECT_DIR/.claude"
 cat > "$PROJECT_DIR/.claude/settings.local.json" << 'EOF'
 {
   "enabledMcpjsonServers": []
