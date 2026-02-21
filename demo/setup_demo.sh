@@ -773,6 +773,15 @@ EOF
 
 echo "  Created: CLAUDE.md"
 
+# Prevent global MCP servers from being enabled in the demo
+# settings.local.json with empty enabledMcpjsonServers overrides any user defaults
+cat > "$PROJECT_DIR/.claude/settings.local.json" << 'EOF'
+{
+  "enabledMcpjsonServers": []
+}
+EOF
+echo "  Created: settings.local.json (MCP servers disabled for demo)"
+
 # ── Step 5: Feature plan with quality gates ────────────────────────────
 echo "[5/8] Creating FEATURE_PLAN.md with dependencies, warnings & quality gates..."
 
