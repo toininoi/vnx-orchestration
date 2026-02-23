@@ -1,6 +1,6 @@
 # VNX Documentation Index
 
-**Last Updated**: 2026-02-19
+**Last Updated**: 2026-02-23
 
 ---
 
@@ -59,6 +59,8 @@
 - T0 orchestration intelligence: `intelligence/T0_ORCHESTRATION_INTELLIGENCE.md`
 - Tag taxonomy: `intelligence/TAG_TAXONOMY.md`
 - Cost tracking guide: `intelligence/COST_TRACKING_GUIDE.md`
+- Hook integration report (context rotation): `intelligence/VNX_HOOK_INTEGRATION_REPORT.md`
+- Rotation test report (v2.4): `intelligence/VNX_ROTATION_TEST_REPORT.md`
 
 ---
 
